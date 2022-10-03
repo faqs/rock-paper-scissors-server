@@ -29,7 +29,7 @@ export class GameService {
   }
 
   connectToGame(connectToGameData: ConnectToGameDto): Game {
-    const game = this.games.find(({id}) => connectToGameData.gameId);
+    const game = this.games.find(({id}) => connectToGameData.gameId === id);
 
     if(!game) {
       throw new Error('The game not found');

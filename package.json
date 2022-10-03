@@ -1,7 +1,7 @@
 {
-  "name": "boilerplate",
+  "name": "rock-paper-scissors-server",
   "version": "0.0.1",
-  "description": "",
+  "description": "Server part of rock,paper,scissors game",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
