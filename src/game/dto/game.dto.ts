@@ -1,3 +1,5 @@
+import {Variants} from "../dictionary";
+
 export class CreateNewGameDto {
   playerNickname: string;
   totalRounds: number;
@@ -9,7 +11,7 @@ export class ConnectToGameDto {
 }
 
 export class MakeTurnDto {
-  playerId: number;
-  variant: string;
+  playerNickname: string;
+  variant: Variants;
   gameId: number;
 }

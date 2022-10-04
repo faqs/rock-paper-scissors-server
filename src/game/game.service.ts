@@ -72,6 +72,37 @@ export class GameService {
   }
 
   makeTurn(makeTurnData: MakeTurnDto) {
-    return `You made a turn with ${makeTurnData.variant}`;
+    if(!makeTurnData.gameId) {
+      throw new HttpException('Game id must be specified', HttpStatus.BAD_REQUEST);
+    }
+
+    if(!makeTurnData.playerNickname) {
+      throw new HttpException('Nickname must be specified', HttpStatus.BAD_REQUEST);
+    }
+
+    if(!makeTurnData.variant) {
+      throw new HttpException('Variant must be specified', HttpStatus.BAD_REQUEST);
+    }
+
+    const player = this.playersService.getPlayer(makeTurnData.playerNickname);
+    const game = this.games.find(({id}) => makeTurnData.gameId === id);
+    const playerFieldName = player.id === game.firstPlayerId ? 'firstPlayerVariant' : 'secondPlayerVariant'
+    let round = game.rounds[game.currentRound-1];
+
+    if(!round) {
+      round = {
+        [playerFieldName]: makeTurnData.variant,
+      };
+      game.rounds.push(round);
+    }
+    round[playerFieldName] = makeTurnData.variant;
+
+    if(round.firstPlayerVariant && round.secondPlayerVariant) {
+      if(game.currentRound !== game.totalRounds) {
+        game.currentRound++;
+      }
+    }
+
+    return game;
   }
 }
