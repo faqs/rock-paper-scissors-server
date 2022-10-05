@@ -1,4 +1,4 @@
-import {Variants} from "../dictionary";
+import {PlayerVariant} from "../../commonTypes";
 
 export interface Game {
   id: number;
@@ -7,9 +7,11 @@ export interface Game {
   totalRounds: number;
   currentRound: number;
   rounds: Round[],
+  isFinished: boolean;
+  gameWinner?: string;
 }
 
 export interface Round {
-  firstPlayerVariant?: Variants,
-  secondPlayerVariant?: Variants,
+  firstVariant?: PlayerVariant,
+  secondVariant?: PlayerVariant,
 }

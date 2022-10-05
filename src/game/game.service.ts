@@ -2,12 +2,27 @@ import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
 import {Game} from "./interfaces/game.interface";
 import {ConnectToGameDto, CreateNewGameDto, MakeTurnDto} from "./dto/game.dto";
 import {PlayersService} from "../players/players.service";
+import {GameGateway} from "../websockets/game.gateway";
+import {getGameWinner, getRoundWinner} from "../helpers/helpers";
 
 @Injectable()
 export class GameService {
   private readonly games: Game[] = [];
 
-  constructor(private readonly playersService: PlayersService) {}
+  constructor(private readonly playersService: PlayersService, private gameGateway: GameGateway) {}
+
+  getGameById(gameId: number): Game {
+    if(!gameId) {
+      throw new HttpException('Game id must be specified', HttpStatus.BAD_REQUEST);
+    }
+    const game = this.games.find(({id}) => gameId === id);
+
+    if(!game) {
+      throw new HttpException('The game not found', HttpStatus.NOT_FOUND);
+    }
+
+    return game;
+  }
 
   createNewGame(newGameData: CreateNewGameDto): Game {
     if(!newGameData.playerNickname) {
@@ -30,6 +45,7 @@ export class GameService {
       totalRounds: newGameData.totalRounds,
       currentRound: 1,
       rounds: [],
+      isFinished: false,
     }
 
     this.games.push(newGame);
@@ -46,11 +62,7 @@ export class GameService {
       throw new HttpException('Nickname must be specified', HttpStatus.BAD_REQUEST);
     }
 
-    const game = this.games.find(({id}) => connectToGameData.gameId === id);
-
-    if(!game) {
-      throw new HttpException('The game not found', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+    const game = this.getGameById(connectToGameData.gameId);
 
     if(game.secondPlayerId) {
       throw new HttpException('The game has already maximum players', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -85,22 +97,43 @@ export class GameService {
     }
 
     const player = this.playersService.getPlayer(makeTurnData.playerNickname);
-    const game = this.games.find(({id}) => makeTurnData.gameId === id);
-    const playerFieldName = player.id === game.firstPlayerId ? 'firstPlayerVariant' : 'secondPlayerVariant'
+    const game = this.getGameById(makeTurnData.gameId);
+
+    if(game.isFinished) {
+      throw new HttpException('The game is already finished', HttpStatus.BAD_REQUEST);
+    }
+
+    const playerFieldName = player.id === game.firstPlayerId ? 'firstVariant' : 'secondVariant'
     let round = game.rounds[game.currentRound-1];
 
+    if (round && round[playerFieldName]) {
+      throw new HttpException('You can not make another turn in round', HttpStatus.BAD_REQUEST);
+    }
+
     if(!round) {
-      round = {
-        [playerFieldName]: makeTurnData.variant,
-      };
+      round = {};
       game.rounds.push(round);
     }
-    round[playerFieldName] = makeTurnData.variant;
 
-    if(round.firstPlayerVariant && round.secondPlayerVariant) {
+    round[playerFieldName] = {
+      playerNickname: player.nickname,
+      variant: makeTurnData.variant,
+    };
+
+    if(round.firstVariant && round.secondVariant) {
+      const roundWinner = getRoundWinner(round.firstVariant, round.secondVariant);
+
       if(game.currentRound !== game.totalRounds) {
         game.currentRound++;
+      } else {
+        game.isFinished = true;
+        game.gameWinner = getGameWinner(game.rounds);
       }
+
+      this.gameGateway.sendRoundResult( {
+        game,
+        winner: roundWinner,
+      });
     }
 
     return game;
