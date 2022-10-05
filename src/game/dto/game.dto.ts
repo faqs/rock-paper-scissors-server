@@ -1,4 +1,4 @@
-import {Variants} from "../dictionary";
+import {Variants} from "../../commonTypes";
 
 export class CreateNewGameDto {
   playerNickname: string;
