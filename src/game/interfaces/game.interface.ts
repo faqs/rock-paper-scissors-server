@@ -15,3 +15,8 @@ export interface Round {
   firstVariant?: PlayerVariant,
   secondVariant?: PlayerVariant,
 }
+
+export interface RoundResult {
+  game: Game,
+  winner: string;
+}

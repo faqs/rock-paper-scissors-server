@@ -2,7 +2,7 @@ import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
 import {Game} from "./interfaces/game.interface";
 import {ConnectToGameDto, CreateNewGameDto, MakeTurnDto} from "./dto/game.dto";
 import {PlayersService} from "../players/players.service";
-import {GameGateway} from "../websockets/game.gateway";
+import {GameGateway} from "./websockets/game.gateway";
 import {getGameWinner, getRoundWinner} from "../helpers/helpers";
 
 @Injectable()
