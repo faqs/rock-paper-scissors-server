@@ -25,14 +25,6 @@ export class GameService {
   }
 
   createNewGame(newGameData: CreateNewGameDto): Game {
-    if(!newGameData.playerNickname) {
-      throw new HttpException('Nickname must be specified', HttpStatus.BAD_REQUEST);
-    }
-
-    if(!newGameData.totalRounds) {
-      throw new HttpException('Total amount of rounds must be specified and be greater then 0', HttpStatus.BAD_REQUEST);
-    }
-
     let player = this.playersService.getPlayer(newGameData.playerNickname);
 
     if(!player) {
@@ -54,14 +46,6 @@ export class GameService {
   }
 
   connectToGame(connectToGameData: ConnectToGameDto): Game {
-    if(!connectToGameData.gameId) {
-      throw new HttpException('Game id must be specified', HttpStatus.BAD_REQUEST);
-    }
-
-    if(!connectToGameData.playerNickname) {
-      throw new HttpException('Nickname must be specified', HttpStatus.BAD_REQUEST);
-    }
-
     const game = this.getGameById(connectToGameData.gameId);
 
     if(game.secondPlayerId) {
@@ -84,18 +68,6 @@ export class GameService {
   }
 
   makeTurn(makeTurnData: MakeTurnDto) {
-    if(!makeTurnData.gameId) {
-      throw new HttpException('Game id must be specified', HttpStatus.BAD_REQUEST);
-    }
-
-    if(!makeTurnData.playerNickname) {
-      throw new HttpException('Nickname must be specified', HttpStatus.BAD_REQUEST);
-    }
-
-    if(!makeTurnData.variant) {
-      throw new HttpException('Variant must be specified', HttpStatus.BAD_REQUEST);
-    }
-
     const player = this.playersService.getPlayer(makeTurnData.playerNickname);
     const game = this.getGameById(makeTurnData.gameId);
 
