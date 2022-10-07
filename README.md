@@ -7,5 +7,5 @@ npm install
 
 ### Builds and runs project
 ```
-npm run serve
+npm run start
 ```
