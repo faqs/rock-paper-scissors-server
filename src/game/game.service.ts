@@ -51,29 +51,49 @@ export class GameService {
 
   connectToGame(connectToGameData: ConnectToGameDto): Game {
     const game = this.getGameById(connectToGameData.gameId);
+    const gamePlayers = [game.firstPlayer, game.secondPlayer];
 
     if(game.isFinished) {
       throw new HttpException('The game is already finished', HttpStatus.BAD_REQUEST);
     }
 
-    if(game.secondPlayer) {
-      throw new HttpException('The game has already maximum players', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
     let player = this.playersService.getPlayer(connectToGameData.playerNickname);
 
-    if(!player) {
-      player = this.playersService.createNewPlayer(connectToGameData.playerNickname);
-    }
+    if(!game.secondPlayer) {
+      if(player?.id === game.firstPlayer.id) {
+        if(game.isPaused) {
+          game.firstPlayer.isGamePaused = false;
+          game.isPaused = false;
+        } else {
+          throw new HttpException('You can not connect to the same game twice', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+      }
 
-    if(player.id === game.firstPlayer.id) {
-      throw new HttpException('You can not connect to the same game twice', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+      if(!player) {
+        player = this.playersService.createNewPlayer(connectToGameData.playerNickname);
+      }
 
-    game.secondPlayer = {
-      ...player,
-      isGamePaused: false,
-    };
+      game.secondPlayer = {
+        ...player,
+        isGamePaused: false,
+      };
+      game.isPaused = game.firstPlayer.isGamePaused;
+    } else {
+      if(!player || (player.id !== game.firstPlayer.id && player.id !== game.secondPlayer.id)) {
+        throw new HttpException('The game has already maximum players', HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        if(!game.isPaused) {
+          throw new HttpException('You can not connect to the same game twice', HttpStatus.INTERNAL_SERVER_ERROR);
+        } else {
+          if(!gamePlayers.find(({id}) => id === player.id).isGamePaused) {
+            throw new HttpException('You can not connect to the same game twice', HttpStatus.INTERNAL_SERVER_ERROR);
+          } else {
+            gamePlayers.find(({id}) => id === player.id).isGamePaused = false;
+            game.isPaused = game.firstPlayer.isGamePaused || game.secondPlayer.isGamePaused;
+          }
+        }
+      }
+    }
 
     return game;
   }
