@@ -67,17 +67,17 @@ export class GameService {
         } else {
           throw new HttpException('You can not connect to the same game twice', HttpStatus.INTERNAL_SERVER_ERROR);
         }
-      }
+      } else {
+        if(!player) {
+          player = this.playersService.createNewPlayer(connectToGameData.playerNickname);
+        }
 
-      if(!player) {
-        player = this.playersService.createNewPlayer(connectToGameData.playerNickname);
+        game.secondPlayer = {
+          ...player,
+          isGamePaused: false,
+        };
+        game.isPaused = game.firstPlayer.isGamePaused;
       }
-
-      game.secondPlayer = {
-        ...player,
-        isGamePaused: false,
-      };
-      game.isPaused = game.firstPlayer.isGamePaused;
     } else {
       if(!player || (player.id !== game.firstPlayer.id && player.id !== game.secondPlayer.id)) {
         throw new HttpException('The game has already maximum players', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -94,6 +94,8 @@ export class GameService {
         }
       }
     }
+
+    this.gameGateway.sendPlayerConnectedGame(connectToGameData.playerNickname, game);
 
     return game;
   }

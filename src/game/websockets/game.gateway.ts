@@ -23,4 +23,11 @@ export class GameGateway {
       game,
     });
   }
+
+  sendPlayerConnectedGame(playerNickname: string, game: Game) {
+    this.server.emit('playerConnected', {
+      playerNickname,
+      game,
+    });
+  }
 }
