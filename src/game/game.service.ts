@@ -1,6 +1,6 @@
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
 import {Game} from "./interfaces/game.interface";
-import {ConnectToGameDto, CreateNewGameDto, MakeTurnDto} from "./dto/game.dto";
+import {ConnectToGameDto, ContinueGameDto, CreateNewGameDto, MakeTurnDto, PauseGameDto} from "./dto/game.dto";
 import {PlayersService} from "../players/players.service";
 import {GameGateway} from "./websockets/game.gateway";
 import {getGameWinner, getRoundWinner} from "../helpers/helpers";
@@ -33,10 +33,14 @@ export class GameService {
 
     const newGame = {
       id: this.games.length + 1,
-      firstPlayerId: player.id,
+      firstPlayer: {
+        ...player,
+        isGamePaused: false,
+      },
       totalRounds: newGameData.totalRounds,
       currentRound: 1,
       rounds: [],
+      isPaused: false,
       isFinished: false,
     }
 
@@ -48,7 +52,11 @@ export class GameService {
   connectToGame(connectToGameData: ConnectToGameDto): Game {
     const game = this.getGameById(connectToGameData.gameId);
 
-    if(game.secondPlayerId) {
+    if(game.isFinished) {
+      throw new HttpException('The game is already finished', HttpStatus.BAD_REQUEST);
+    }
+
+    if(game.secondPlayer) {
       throw new HttpException('The game has already maximum players', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -58,11 +66,14 @@ export class GameService {
       player = this.playersService.createNewPlayer(connectToGameData.playerNickname);
     }
 
-    if(player.id === game.firstPlayerId) {
+    if(player.id === game.firstPlayer.id) {
       throw new HttpException('You can not connect to the same game twice', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    game.secondPlayerId = player.id;
+    game.secondPlayer = {
+      ...player,
+      isGamePaused: false,
+    };
 
     return game;
   }
@@ -75,7 +86,7 @@ export class GameService {
       throw new HttpException('The game is already finished', HttpStatus.BAD_REQUEST);
     }
 
-    const playerFieldName = player.id === game.firstPlayerId ? 'firstVariant' : 'secondVariant'
+    const playerFieldName = player.id === game.firstPlayer.id ? 'firstVariant' : 'secondVariant'
     let round = game.rounds[game.currentRound-1];
 
     if (round && round[playerFieldName]) {
@@ -107,6 +118,35 @@ export class GameService {
         winner: roundWinner,
       });
     }
+
+    return game;
+  }
+
+  pauseGame(pauseGameData: PauseGameDto) {
+    const game = this.getGameById(pauseGameData.gameId);
+    const playerField = pauseGameData.playerNickname === game.firstPlayer.nickname ? 'firstPlayer' : 'secondPlayer'
+
+    if(!game.isFinished) {
+      game.isPaused = true;
+      game[playerField].isGamePaused = true;
+
+      this.gameGateway.sendPlayerPausedGame(pauseGameData.playerNickname, game);
+    }
+
+    return game;
+  }
+
+  continueGame(continueGameData: ContinueGameDto) {
+    const game = this.getGameById(continueGameData.gameId);
+    const playerField = continueGameData.playerNickname === game.firstPlayer.nickname ? 'firstPlayer' : 'secondPlayer'
+
+    game[playerField].isGamePaused = false;
+
+    if (!game.firstPlayer?.isGamePaused && !game.secondPlayer?.isGamePaused) {
+      game.isPaused = false;
+    }
+
+    this.gameGateway.sendPlayerContinuedGame(continueGameData.playerNickname, game);
 
     return game;
   }

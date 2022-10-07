@@ -23,3 +23,17 @@ export class MakeTurnDto {
   @IsNotEmpty()
   gameId: number;
 }
+
+export class PauseGameDto {
+  @IsNotEmpty()
+  playerNickname: string;
+  @IsNotEmpty()
+  gameId: number;
+}
+
+export class ContinueGameDto {
+  @IsNotEmpty()
+  playerNickname: string;
+  @IsNotEmpty()
+  gameId: number;
+}
